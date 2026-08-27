@@ -33,3 +33,23 @@ Note: This section is for stages 2 and beyond.
    the first time you run it. Subsequent runs will be fast.
 3. Run `codecrafters submit` to submit your solution to CodeCrafters. Test
    output will be streamed to your terminal.
+
+# Using OpenRouter
+
+Set your OpenRouter API key, then pass a prompt to the program:
+
+```sh
+export OPENROUTER_API_KEY="your-openrouter-api-key"
+./your_program.sh -p "Explain what this project does"
+```
+
+The default model is `deepseek/deepseek-v4-flash`. You can select any model in
+the OpenRouter catalog with `OPENROUTER_MODEL`:
+
+```sh
+export OPENROUTER_MODEL="provider/model-name"
+./your_program.sh -p "Hello from OpenRouter"
+```
+
+The OpenRouter API base URL defaults to `https://openrouter.ai/api/v1`. It can
+be overridden with `OPENROUTER_BASE_URL` when needed.

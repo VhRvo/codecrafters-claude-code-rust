@@ -22,6 +22,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         process::exit(1);
     });
 
+    let model =
+        env::var("OPENROUTER_MODEL").unwrap_or_else(|_| "anthropic/claude-haiku-4.5".to_string());
+
     let config = OpenAIConfig::new()
         .with_api_base(base_url)
         .with_api_key(api_key);
@@ -38,7 +41,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     "content": args.prompt
                 }
             ],
-            "model": "anthropic/claude-haiku-4.5",
+            "model": model,
+            "tools": [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "Read",
+                        "description": "Read and return the contents of a file",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "file_path": {
+                                    "type": "string",
+                                    "description": "The path to the file to read"
+                                }
+                            },
+                            "required": ["file_path"]
+                        }
+                    }
+                }
+            ]
         }))
         .await?;
 
