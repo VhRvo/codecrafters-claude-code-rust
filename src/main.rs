@@ -3,6 +3,8 @@ use clap::Parser;
 use serde_json::{Value, json};
 use std::{env, process};
 
+mod tools;
+
 #[derive(Parser)]
 #[command(author, version, about)]
 struct Args {
@@ -25,6 +27,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let model =
         env::var("OPENROUTER_MODEL").unwrap_or_else(|_| "anthropic/claude-haiku-4.5".to_string());
 
+    let tools = tools::get_tools();
+
     let config = OpenAIConfig::new()
         .with_api_base(base_url)
         .with_api_key(api_key);
@@ -42,25 +46,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             ],
             "model": model,
-            "tools": [
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "Read",
-                        "description": "Read and return the contents of a file",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "file_path": {
-                                    "type": "string",
-                                    "description": "The path to the file to read"
-                                }
-                            },
-                            "required": ["file_path"]
-                        }
-                    }
-                }
-            ]
+            "tools": tools
         }))
         .await?;
 
