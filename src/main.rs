@@ -1,6 +1,6 @@
 use async_openai::{Client, config::OpenAIConfig};
 use clap::Parser;
-use serde_json::{Value, json};
+use serde_json::{Value, json, to_string_pretty};
 use std::{env, process};
 
 mod tools;
@@ -52,9 +52,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     eprintln!("Logs from your program will appear here!");
+    // eprintln!("{}", to_string_pretty(&response)?);
 
-    if let Some(content) = response["choices"][0]["message"]["content"].as_str() {
+    let choice = &response["choices"][0];
+    // eprintln!("{}", to_string_pretty(&choice)?);
+    let message = &choice["message"];
+    // eprintln!("{}", to_string_pretty(&message)?);
+    let tool_calls = &message["tool_calls"];
+    // eprintln!("{}", to_string_pretty(&tool_calls)?);
+
+    if tool_calls.is_null() {
+        let content = message["content"].as_str().ok_or("no message provided")?;
         println!("{}", content);
+    } else if let Some(tool_call) = tool_calls.as_array().ok_or("tool_calls is not an array")?.get(0) {
+        let function = tool_call["function"].as_object().ok_or("function is not an object")?;
+        // println!("function: {:?}", function);
+        let name = function.get("name").ok_or("no name provided")?.as_str().ok_or("name is not a string")?;
+        let arguments = function["arguments"].as_str().ok_or("arguments is not an path")?;
+        let arguments = serde_json::from_str::<serde_json::Map<String, serde_json::Value>>(arguments)?;
+        if name != "Read" {
+            return Err(format!("unknown tool: {}", name).into());
+        }
+        let result = tools::execute_read(&arguments)?;
+        println!("{}", result);
     }
 
     Ok(())
