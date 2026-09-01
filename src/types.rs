@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Role {
     User,
@@ -12,38 +12,40 @@ pub mod response {
     use super::Role;
     use serde::{Deserialize, Serialize};
 
-    #[derive(Debug, Deserialize, Serialize)]
+    #[derive(Clone, Debug, Deserialize, Serialize)]
     pub struct Response {
         pub choices: Vec<Choice>,
     }
 
-    #[derive(Debug, Deserialize, Serialize)]
+    #[derive(Clone, Debug, Deserialize, Serialize)]
     pub struct Choice {
         pub message: Message,
     }
 
-    #[derive(Debug, Deserialize, Serialize)]
+    #[derive(Clone, Debug, Deserialize, Serialize)]
     pub struct Message {
         pub role: Role,
         pub content: Option<String>,
         pub tool_calls: Option<Vec<ToolCall>>,
     }
 
-    #[derive(Debug, Deserialize, Serialize)]
+    #[derive(Clone, Debug, Deserialize, Serialize)]
     #[serde(rename_all = "snake_case")]
     pub struct ToolCall {
         pub id: String,
+        #[serde(rename = "type")]
+        pub call_type: String,
         #[serde(rename = "function")]
         pub function_call: FunctionCall,
     }
 
-    #[derive(Debug, Deserialize, Serialize)]
+    #[derive(Clone, Debug, Deserialize, Serialize)]
     pub struct FunctionCall {
         pub name: String,
         pub arguments: String,
     }
 
-    #[derive(Debug, Deserialize, Serialize)]
+    #[derive(Clone, Debug, Deserialize, Serialize)]
     pub struct ReadArguments {
         pub file_path: String,
     }
@@ -53,18 +55,17 @@ pub mod request {
     use super::Role;
     use serde::Serialize;
 
-    #[derive(Debug, Serialize)]
+    #[derive(Clone, Debug, Serialize)]
     pub struct Request {
-        pub messages: Vec<Message>,
+        pub messages: Vec<serde_json::Value>,
         pub model: String,
         pub tools: Vec<serde_json::Value>,
     }
 
-    #[derive(Debug, Serialize)]
+    #[derive(Clone, Debug, Serialize)]
     pub struct Message {
         pub role: Role,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub tool_call_id: Option<String>,
+        pub tool_call_id: String,
         pub content: String,
     }
 }

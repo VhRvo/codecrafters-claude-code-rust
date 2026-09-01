@@ -38,40 +38,61 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_api_key(api_key);
 
     let client = Client::with_config(config);
-
-    let request = request::Request {
-        messages: vec![request::Message {
-            role: types::Role::User,
-            tool_call_id: None,
-            content: args.prompt.clone(),
-        }],
+    let messages = vec![json!({
+        "role": types::Role::User,
+        "content": args.prompt.clone(),
+    })];
+    let mut request = request::Request {
+        messages,
         model,
         tools,
     };
 
-    let response: Value = client.chat().create_byot(request).await?;
-
-    // You can use print statements as follows for debugging, they'll be visible when running tests.
     eprintln!("Logs from your program will appear here!");
-    // eprintln!("{}", to_string_pretty(&response)?);
+    'outer: loop {
+        // eprintln!("request: \n{}", serde_json::to_string_pretty(&request)?);
+        let response: Value = client.chat().create_byot(request.clone()).await?;
 
-    let response: types::response::Response = serde_json::from_value(response.clone())?;
-    let message = &response.choices[0].message;
+        // You can use print statements as follows for debugging, they'll be visible when running tests.
+        // eprintln!("response: \n{}", serde_json::to_string_pretty(&response)?);
 
-    if let Some(tool_calls) = &message.tool_calls {
-        let tool_call = &tool_calls[0];
-        let function_call = &tool_call.function_call;
-        let name = &function_call.name;
-        let arguments = &function_call.arguments;
-        let arguments: types::response::ReadArguments = serde_json::from_str(arguments)?;
-        if name != "Read" {
-            return Err(format!("unknown tool: {}", name).into());
+        let response: types::response::Response = serde_json::from_value(response.clone())?;
+        for choice in response.choices {
+            let message = choice.message;
+
+            if let Some(tool_calls) = &message.tool_calls {
+                request.messages.push(serde_json::to_value(&message)?);
+                for tool_call in tool_calls {
+                    let result = evaluate_tool_call(tool_call)?;
+                    // println!("{}", result);
+                    request
+                        .messages
+                        .push(serde_json::to_value(request::Message {
+                            role: types::Role::Tool,
+                            tool_call_id: tool_call.id.clone(),
+                            content: result,
+                        })?);
+                }
+            } else if let Some(content) = &message.content {
+                println!("{}", content);
+                break 'outer;
+            }
         }
-        let result = tools::execute_read(&arguments)?;
-        println!("{}", result);
-    } else if let Some(content) = &message.content {
-        println!("{}", content);
     }
 
     Ok(())
+}
+
+fn evaluate_tool_call(
+    tool_call: &types::response::ToolCall,
+) -> Result<String, Box<dyn std::error::Error>> {
+    let function_call = &tool_call.function_call;
+    let name = &function_call.name;
+    let arguments = &function_call.arguments;
+    let arguments: types::response::ReadArguments = serde_json::from_str(arguments)?;
+    if name != "Read" {
+        return Err(format!("unknown tool: {}", name).into());
+    }
+    let result = tools::execute_read(&arguments)?;
+    Ok(result)
 }
