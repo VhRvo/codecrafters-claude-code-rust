@@ -1,7 +1,10 @@
 use async_openai::{Client, config::OpenAIConfig};
 use clap::Parser;
+use serde::Serialize;
 use serde_json::{Value, json};
 use std::{env, process};
+
+use crate::types::request;
 
 mod tools;
 mod types;
@@ -36,20 +39,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let client = Client::with_config(config);
 
-    #[allow(unused_variables)]
-    let response: Value = client
-        .chat()
-        .create_byot(json!({
-            "messages": [
-                {
-                    "role": "user",
-                    "content": args.prompt
-                }
-            ],
-            "model": model,
-            "tools": tools
-        }))
-        .await?;
+    let request = request::Request {
+        messages: vec![request::Message {
+            role: types::Role::User,
+            tool_call_id: None,
+            content: args.prompt.clone(),
+        }],
+        model,
+        tools,
+    };
+
+    let response: Value = client.chat().create_byot(request).await?;
 
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     eprintln!("Logs from your program will appear here!");

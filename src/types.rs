@@ -2,7 +2,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
-enum Role {
+pub enum Role {
+    User,
     Assistant,
     Tool,
 }
