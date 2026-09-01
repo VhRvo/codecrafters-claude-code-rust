@@ -1,9 +1,10 @@
 use async_openai::{Client, config::OpenAIConfig};
 use clap::Parser;
-use serde_json::{Value, json, to_string_pretty};
+use serde_json::{Value, json};
 use std::{env, process};
 
 mod tools;
+mod types;
 
 #[derive(Parser)]
 #[command(author, version, about)]
@@ -54,27 +55,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     eprintln!("Logs from your program will appear here!");
     // eprintln!("{}", to_string_pretty(&response)?);
 
-    let choice = &response["choices"][0];
-    // eprintln!("{}", to_string_pretty(&choice)?);
-    let message = &choice["message"];
-    // eprintln!("{}", to_string_pretty(&message)?);
-    let tool_calls = &message["tool_calls"];
-    // eprintln!("{}", to_string_pretty(&tool_calls)?);
+    let response: types::response::Response = serde_json::from_value(response.clone())?;
+    let message = &response.choices[0].message;
 
-    if tool_calls.is_null() {
-        let content = message["content"].as_str().ok_or("no message provided")?;
-        println!("{}", content);
-    } else if let Some(tool_call) = tool_calls.as_array().ok_or("tool_calls is not an array")?.get(0) {
-        let function = tool_call["function"].as_object().ok_or("function is not an object")?;
-        // println!("function: {:?}", function);
-        let name = function.get("name").ok_or("no name provided")?.as_str().ok_or("name is not a string")?;
-        let arguments = function["arguments"].as_str().ok_or("arguments is not an path")?;
-        let arguments = serde_json::from_str::<serde_json::Map<String, serde_json::Value>>(arguments)?;
+    if let Some(tool_calls) = &message.tool_calls {
+        let tool_call = &tool_calls[0];
+        let function_call = &tool_call.function_call;
+        let name = &function_call.name;
+        let arguments = &function_call.arguments;
+        let arguments: types::response::ReadArguments = serde_json::from_str(arguments)?;
         if name != "Read" {
             return Err(format!("unknown tool: {}", name).into());
         }
         let result = tools::execute_read(&arguments)?;
         println!("{}", result);
+    } else if let Some(content) = &message.content {
+        println!("{}", content);
     }
 
     Ok(())
