@@ -49,6 +49,12 @@ pub mod response {
     pub struct ReadArguments {
         pub file_path: String,
     }
+
+    #[derive(Clone, Debug, Deserialize, Serialize)]
+    pub struct WriteArguments {
+        pub file_path: String,
+        pub content: String,
+    }
 }
 
 pub mod request {

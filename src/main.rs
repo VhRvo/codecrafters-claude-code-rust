@@ -89,10 +89,16 @@ fn evaluate_tool_call(
     let function_call = &tool_call.function_call;
     let name = &function_call.name;
     let arguments = &function_call.arguments;
-    let arguments: types::response::ReadArguments = serde_json::from_str(arguments)?;
-    if name != "Read" {
-        return Err(format!("unknown tool: {}", name).into());
-    }
-    let result = tools::execute_read(&arguments)?;
+    let result = match name.as_str() {
+        "Read" => {
+            let arguments: types::response::ReadArguments = serde_json::from_str(arguments)?;
+            tools::execute_read(&arguments)
+        }
+        "Write" => {
+            let arguments: types::response::WriteArguments = serde_json::from_str(arguments)?;
+            tools::execute_write(&arguments)
+        }
+        _ => Err(format!("unknown tool: {}", name).into()),
+    }?;
     Ok(result)
 }
