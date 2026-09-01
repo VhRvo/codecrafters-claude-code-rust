@@ -44,17 +44,6 @@ pub mod response {
         pub name: String,
         pub arguments: String,
     }
-
-    #[derive(Clone, Debug, Deserialize, Serialize)]
-    pub struct ReadArguments {
-        pub file_path: String,
-    }
-
-    #[derive(Clone, Debug, Deserialize, Serialize)]
-    pub struct WriteArguments {
-        pub file_path: String,
-        pub content: String,
-    }
 }
 
 pub mod request {
@@ -78,7 +67,7 @@ pub mod request {
 
 #[cfg(test)]
 mod tests {
-    use super::response::{FunctionCall, ReadArguments};
+    use super::{ReadArguments, response::FunctionCall};
     use serde_json::json;
 
     #[test]
@@ -96,4 +85,20 @@ mod tests {
 
         assert_eq!(arguments.file_path, "apple.py");
     }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ReadArguments {
+    pub file_path: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct WriteArguments {
+    pub file_path: String,
+    pub content: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct BashArguments {
+    pub command: String,
 }

@@ -1,10 +1,9 @@
 use async_openai::{Client, config::OpenAIConfig};
 use clap::Parser;
-use serde::Serialize;
 use serde_json::{Value, json};
 use std::{env, process};
 
-use crate::types::request;
+use crate::types::{request, response};
 
 mod tools;
 mod types;
@@ -56,7 +55,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // You can use print statements as follows for debugging, they'll be visible when running tests.
         // eprintln!("response: \n{}", serde_json::to_string_pretty(&response)?);
 
-        let response: types::response::Response = serde_json::from_value(response.clone())?;
+        let response: response::Response = serde_json::from_value(response.clone())?;
         for choice in response.choices {
             let message = choice.message;
 
@@ -84,20 +83,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn evaluate_tool_call(
-    tool_call: &types::response::ToolCall,
+    tool_call: &response::ToolCall,
 ) -> Result<String, Box<dyn std::error::Error>> {
     let function_call = &tool_call.function_call;
     let name = &function_call.name;
     let arguments = &function_call.arguments;
     let result = match name.as_str() {
         "Read" => {
-            let arguments: types::response::ReadArguments = serde_json::from_str(arguments)?;
+            let arguments: types::ReadArguments = serde_json::from_str(arguments)?;
             tools::execute_read(&arguments)
         }
         "Write" => {
-            let arguments: types::response::WriteArguments = serde_json::from_str(arguments)?;
+            let arguments: types::WriteArguments = serde_json::from_str(arguments)?;
             tools::execute_write(&arguments)
         }
+        "Bash" => {
+            let arguments: types::BashArguments = serde_json::from_str(arguments)?;
+            tools::execute_bash(&arguments)
+        }
+
         _ => Err(format!("unknown tool: {}", name).into()),
     }?;
     Ok(result)
